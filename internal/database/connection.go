@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/heldercavalcante/api-bank/internal/configs"
 
@@ -24,7 +25,7 @@ type Connection struct {
 
 func NewConnection() error {
 	dbConfigs := configs.GetDBConfigs()
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbConfigs.User, dbConfigs.Pass, dbConfigs.Host, dbConfigs.Port,dbConfigs.Database)
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbConfigs.User, dbConfigs.Pass, dbConfigs.Host, dbConfigs.Port,dbConfigs.Database)
 	db, err := sql.Open("mysql", connectionString)
     if err != nil {
 		return err
@@ -32,7 +33,7 @@ func NewConnection() error {
 
 	db.SetMaxOpenConns(25) // Maximum number of open connections to the database
     db.SetMaxIdleConns(25) // Maximum number of connections in the idle connection pool
-    db.SetConnMaxLifetime(0) // Maximum amount of time a connection may be reused (0 means unlimited)
+    db.SetConnMaxLifetime(time.Hour) // Maximum amount of time a connection may be reused (0 means unlimited)
 
 	if err := db.Ping(); err != nil {
 		return err

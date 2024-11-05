@@ -90,6 +90,33 @@ func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfilePa
 	)
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, userID)
+	return err
+}
+
+const deleteUsersAddressByUserId = `-- name: DeleteUsersAddressByUserId :exec
+DELETE FROM user_address WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUsersAddressByUserId(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, deleteUsersAddressByUserId, userID)
+	return err
+}
+
+const deleteUsersProfileByUserId = `-- name: DeleteUsersProfileByUserId :exec
+DELETE FROM user_profiles WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUsersProfileByUserId(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, deleteUsersProfileByUserId, userID)
+	return err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT user_id, username, password_hash, email, created_at, updated_at FROM users
 WHERE user_id = ?
@@ -105,6 +132,76 @@ func (q *Queries) GetUser(ctx context.Context, userID int32) (User, error) {
 		&i.Email,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserCompleteDataById = `-- name: GetUserCompleteDataById :one
+SELECT 
+    u.user_id,
+    u.username, 
+    u.email, 
+    u.created_at, 
+    u.updated_at, 
+    up.first_name,  
+    up.last_name,
+    up.phone_number,
+    up.date_of_birth,
+    ua.street_address,
+    ua.house_number,
+    ua.complement,
+    ua.city,
+    ua.zone,
+    ua.district,
+    ua.postal_code,
+    ua.country
+FROM users u
+JOIN user_profiles up ON up.user_id = u.user_id
+JOIN user_address ua ON up.address_id = ua.user_address_id
+WHERE u.user_id = ?
+`
+
+type GetUserCompleteDataByIdRow struct {
+	UserID        int32
+	Username      string
+	Email         string
+	CreatedAt     sql.NullTime
+	UpdatedAt     sql.NullTime
+	FirstName     sql.NullString
+	LastName      sql.NullString
+	PhoneNumber   sql.NullString
+	DateOfBirth   sql.NullTime
+	StreetAddress string
+	HouseNumber   sql.NullInt32
+	Complement    sql.NullString
+	City          string
+	Zone          string
+	District      sql.NullString
+	PostalCode    string
+	Country       string
+}
+
+func (q *Queries) GetUserCompleteDataById(ctx context.Context, userID int32) (GetUserCompleteDataByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserCompleteDataById, userID)
+	var i GetUserCompleteDataByIdRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.FirstName,
+		&i.LastName,
+		&i.PhoneNumber,
+		&i.DateOfBirth,
+		&i.StreetAddress,
+		&i.HouseNumber,
+		&i.Complement,
+		&i.City,
+		&i.Zone,
+		&i.District,
+		&i.PostalCode,
+		&i.Country,
 	)
 	return i, err
 }
@@ -165,6 +262,91 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getUsersCompleteData = `-- name: GetUsersCompleteData :many
+SELECT
+    u.user_id,
+    u.username, 
+    u.email, 
+    u.created_at, 
+    u.updated_at, 
+    up.first_name,  
+    up.last_name,
+    up.phone_number,
+    up.date_of_birth,
+    ua.street_address,
+    ua.house_number,
+    ua.complement,
+    ua.city,
+    ua.zone,
+    ua.district,
+    ua.postal_code,
+    ua.country
+FROM users u
+JOIN user_profiles up ON up.user_id = u.user_id
+JOIN user_address ua ON up.address_id = ua.user_address_id
+`
+
+type GetUsersCompleteDataRow struct {
+	UserID        int32
+	Username      string
+	Email         string
+	CreatedAt     sql.NullTime
+	UpdatedAt     sql.NullTime
+	FirstName     sql.NullString
+	LastName      sql.NullString
+	PhoneNumber   sql.NullString
+	DateOfBirth   sql.NullTime
+	StreetAddress string
+	HouseNumber   sql.NullInt32
+	Complement    sql.NullString
+	City          string
+	Zone          string
+	District      sql.NullString
+	PostalCode    string
+	Country       string
+}
+
+func (q *Queries) GetUsersCompleteData(ctx context.Context) ([]GetUsersCompleteDataRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUsersCompleteData)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsersCompleteDataRow
+	for rows.Next() {
+		var i GetUsersCompleteDataRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Username,
+			&i.Email,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.FirstName,
+			&i.LastName,
+			&i.PhoneNumber,
+			&i.DateOfBirth,
+			&i.StreetAddress,
+			&i.HouseNumber,
+			&i.Complement,
+			&i.City,
+			&i.Zone,
+			&i.District,
+			&i.PostalCode,
+			&i.Country,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUsersProfile = `-- name: GetUsersProfile :many
 SELECT profile_id, first_name, last_name, phone_number, date_of_birth, created_at, updated_at, user_id, address_id FROM user_profiles
 `
@@ -200,4 +382,102 @@ func (q *Queries) GetUsersProfile(ctx context.Context) ([]UserProfile, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users SET username = ?, password_hash = ?, email = ?, updated_at = ?
+WHERE user_id = ?
+`
+
+type UpdateUserParams struct {
+	Username     string
+	PasswordHash string
+	Email        string
+	UpdatedAt    sql.NullTime
+	UserID       int32
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.ExecContext(ctx, updateUser,
+		arg.Username,
+		arg.PasswordHash,
+		arg.Email,
+		arg.UpdatedAt,
+		arg.UserID,
+	)
+	return err
+}
+
+const updateUserAddress = `-- name: UpdateUserAddress :exec
+UPDATE user_address 
+SET street_address = ?, house_number = ?, complement = ?, city = ?, zone = ?, district = ?, postal_code = ?, country = ?
+WHERE user_id = ?
+`
+
+type UpdateUserAddressParams struct {
+	StreetAddress string
+	HouseNumber   sql.NullInt32
+	Complement    sql.NullString
+	City          string
+	Zone          string
+	District      sql.NullString
+	PostalCode    string
+	Country       string
+	UserID        int32
+}
+
+func (q *Queries) UpdateUserAddress(ctx context.Context, arg UpdateUserAddressParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserAddress,
+		arg.StreetAddress,
+		arg.HouseNumber,
+		arg.Complement,
+		arg.City,
+		arg.Zone,
+		arg.District,
+		arg.PostalCode,
+		arg.Country,
+		arg.UserID,
+	)
+	return err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :exec
+UPDATE user_profiles SET first_name = ?, last_name = ?, phone_number = ?, date_of_birth = ?
+WHERE user_id = ?
+`
+
+type UpdateUserProfileParams struct {
+	FirstName   sql.NullString
+	LastName    sql.NullString
+	PhoneNumber sql.NullString
+	DateOfBirth sql.NullTime
+	UserID      int32
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserProfile,
+		arg.FirstName,
+		arg.LastName,
+		arg.PhoneNumber,
+		arg.DateOfBirth,
+		arg.UserID,
+	)
+	return err
+}
+
+const userNameOrEmailExists = `-- name: UserNameOrEmailExists :one
+SELECT COUNT(*) FROM users
+WHERE username = ? OR email = ?
+`
+
+type UserNameOrEmailExistsParams struct {
+	Username string
+	Email    string
+}
+
+func (q *Queries) UserNameOrEmailExists(ctx context.Context, arg UserNameOrEmailExistsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, userNameOrEmailExists, arg.Username, arg.Email)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }

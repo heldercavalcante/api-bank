@@ -11,7 +11,8 @@ type Address struct {
 	Country string `json:"country"`
 }
 
-type CreateUserRequest struct {
+type UserRequest struct {
+	UserID int64 `json:"userId"`
 	UserName string `json:"username"`
 	FirstName string `json:"firstName"`
 	LastName string `json:"lastName"`
@@ -20,4 +21,19 @@ type CreateUserRequest struct {
 	PhoneNumber string `json:"phoneNumber"`
 	Address Address `json:"address"`
 	DateOfBirth string `json:"dateOfBirth"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+type UserCompleteData struct {
+	UserID int64 `json:"userId"`
+	UserName string `json:"username"`
+	FirstName string `json:"firstName"`
+	LastName string `json:"lastName"`
+	Email string `json:"email"`
+	PhoneNumber string `json:"phoneNumber"`
+	Address Address `json:"address"`
+	DateOfBirth string `json:"dateOfBirth"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 }
